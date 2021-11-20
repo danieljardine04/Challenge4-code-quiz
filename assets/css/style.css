@@ -1,0 +1,23 @@
+
+.highScore{
+    display: flex;
+    justify-content: space-between;
+
+    flex-wrap: wrap;
+    align-content: space-between;
+   
+}
+
+.highScore a {
+    align-items: center;
+    font-size: 20px;
+    margin-top: 18px;
+    color: magenta;
+}
+
+#timer {
+    align-items: center;
+    font-size: 25px;
+    
+    
+}
