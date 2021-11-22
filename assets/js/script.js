@@ -3,13 +3,11 @@ var answerListEl = document.querySelector("#answerList");
 var pageContentEl = document.querySelector(".page-content");
 var timerEl = document.getElementById('timer');
 var btnEl = document.querySelector(".btn");
-var buttonEl = document.createElement("button");
 var questionEl = document.querySelector(".question");
-btnEl.appendChild(buttonEl);
-buttonEl.className ="btn";
-buttonEl.textContent = "Start Quiz!"
+var highScoreEl = document.getElementById("viewScores");
+var paragraphEl = document.getElementById("paragraph");
+
 timerEl.textContent = "Time: " + 0;
-var currentQuestion = null;
 var statusEl = document.querySelector("#status");
 
 
@@ -50,40 +48,45 @@ var testQuestions = [
     }
 ];
 console.log(testQuestions.length);
-
-
+var timeInterval;
 
 
 var countdown = function(){
-    timeLeft += 75;
+    timeLeft = 75;
     timerEl.textContent = "Time: " + timeLeft;
-    var timeInterval = setInterval(function(){
+    timeInterval = setInterval(function(){
         timeLeft--
         timerEl.textContent = "Time: " + timeLeft;
-        if(timeLeft < 0){
-            endGame();
+        if(timeLeft < 1){
+            endGame(timeLeft);
         }
-    }, 1000);
-
+    }, 1000)
     
+    
+}
+
+var clearPage = function(){
+    headerEl.textContent = "";
+    paragraphEl.textContent = "";
+    answerListEl.innerHTML = "";
+    btnEl.innerHTML = "";
+    statusEl.textContent = "";
 }
 
 
 var startUp = function(){
-    
+    clearPage();
+    var buttonEl = document.createElement("button");
+    buttonEl.textContent = "Start Quiz!"
+    btnEl.appendChild(buttonEl);
     headerEl.textContent = "Final Fantasy Quiz!";
-    var paragraphEl = document.createElement("p");
-    questionEl.appendChild(paragraphEl);
     paragraphEl.textContent = "Welcome to the Final Fantasy JavaScript code quiz. Please click the start button below to start the quiz. You will have 75 seconds to complete the quiz. Keep in mind that getting a wrong answer will penalize you 10 seconds each."
     
-    btnEl.addEventListener("click", function(){
-        paragraphEl.textContent = "";
-        
+    buttonEl.addEventListener("click", function(){
         countdown();
-        if(btnEl.after){
-            btnEl.remove();
-            displayQuestion(testQuestions[0]);
-        }
+        buttonEl.remove();
+        displayQuestion(testQuestions[0]);
+        
     })
     
 
@@ -91,26 +94,22 @@ var startUp = function(){
 };
 
 var answerQuestion = function(question, answer){
+    if(timeLeft < 1){
+        endGame(timeLeft);
+    }
     if(question.correctAnswer === answer){
         displayQuestion(testQuestions[question.id+1], "Correct!");
         
         
     } else{
-        timeLeft -= 10;
+        timeLeft -= 20;
+        timerEl.textContent = "Time: " + timeLeft;
         displayQuestion(testQuestions[question.id+1], "Wrong!" );
         
     }
 
 }
 
-var randomQuestion = function(question){
-    
-    return question[question.length * Math.random() | 0];
-}
-
-var getAnswers = function(id){
-    
-}
 
 var buttonListener = function(question, answer){
     return function(){
@@ -119,20 +118,28 @@ var buttonListener = function(question, answer){
 }
 
 var displayQuestion = function(question, status){
-    //need to create an ordered list for all the buttons.
+    //need to create an ordered list for all the buttons
+    clearPage();
     if(!question){
-        return endGame();
+        answerListEl.innerHTML = "";
+        return endGame(timeLeft);
     }
     answerListEl.innerHTML = "";
 
     for(var i = 0; i < question.answers.length; i++){
+        if(timeLeft < 1){
+            timerEl.textContent = "Time: " + 0;
+           return endGame(timeLeft);
+        } else{
         var answer = question.answers[i]; 
         var button = document.createElement("button");
-        button.addEventListener("click", buttonListener(question, answer)) 
-        button.textContent = answer;
-        var listEl = document.createElement("li");
-        listEl.appendChild(button);
-        answerListEl.appendChild(listEl);
+
+            button.addEventListener("click", buttonListener(question, answer)) 
+            button.textContent = answer;
+            var listEl = document.createElement("li");
+            listEl.appendChild(button);
+            answerListEl.appendChild(listEl);
+        }
     } 
 
     headerEl.textContent = question.question;
@@ -146,18 +153,85 @@ var displayQuestion = function(question, status){
 
 var endGame = function(number){
     clearInterval(timeInterval);
-    var score = timeLeft;
-    if(timeLeft < 1){
-        return highScore();
+    clearPage();
+    if(number < 1){
+        timeLeft = 0;
+         highScore("You Lost! Your score is 0. Welcome to the Hall of Shame!");
+    } else {
+        saveScore();
     }
+    
+    
+}
+
+var resetScore = function(){
+    localStorage.removeItem('scores');
+    highScore("High Scores have been cleared");
+}
+
+var highScore = function(title){
+    clearPage();
+    headerEl.textContent = !title ? "High Scores!": title;
+    btnEl.innerHTML = "<button onclick='startUp()'>Start Over</button><button onclick='resetScore()'>Reset HighScores</button>";
+    var scores = JSON.parse(localStorage.getItem('scores'));
+    if(scores){
+        scores.sort((a, b) => b.score - a.score);
+        for(var i = 0; i < scores.length; i++){
+            var listItemEl = document.createElement("li");
+            answerListEl.appendChild(listItemEl);
+            listItemEl.textContent = scores[i].name + ": " + scores[i].score;
+        }
+    }
+}
+
+var saveScore = function(){
+    clearPage();
+    headerEl.textContent = "Great Job! You finished. Your score is " + (timeLeft);
+    
+    var button = document.createElement("button");
+    btnEl.innerHTML = "<input type='text' name='name' id='text-box' class='text' /> ";
+    btnEl.appendChild(button);
+    
+    
+    
+    button.textContent = "Save";
+    button.className = ".btn";
+    button.addEventListener("click", function(){
+        
+        var name = document.querySelector("input[name='name']").value;
+        
+        
+        console.log("clicked!");
+        if(!name){
+            window.alert("You need to write your name.");
+        }else {
+            saveName(name);
+            highScore();
+        }
+    })
+    
+}
+
+var saveName = function(name, score){
+    var scores = localStorage.getItem('scores');
+    if(!scores){
+        scores = [];
+    }else{
+        scores = JSON.parse(scores);
+    }
+     scores.push({name: name, score: timeLeft});
+    
+    localStorage.setItem("scores", JSON.stringify(scores));
+    console.log("name");
+    return name;
     
 
 }
 
-var highScore = function(){
-
-}
-        
+highScoreEl.addEventListener("click", function(){
+    clearInterval(timeInterval);
+    highScore();
+})
         
 startUp();
 
